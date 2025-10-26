@@ -1,0 +1,174 @@
+/* ========================================================================= */
+/* 1. Reset e Base (Aplicando ao Streamlit) */
+/* ========================================================================= */
+
+* {
+    margin: 0px;
+    padding: 0px;
+    box-sizing: border-box;
+    /* Use 'Source Sans Pro' ou a fonte que você escolheu. Poppins precisa ser importada */
+    /* font-family: Poppins, sans-serif; */ 
+}
+
+/* Cor de fundo do Streamlit (Substitui o 'body') */
+.stApp {
+    padding-top: 0px !important;
+    background-color: #08121E; /* Cor de fundo do body */
+}
+
+/* Cor padrão para textos (p, st.write, etc.) */
+.stApp p, .stApp label, .stApp div, .stApp li {
+    color: #E0E1DD;
+}
+
+/* Estilo para H1, H2, H3 (Streamlit Titles/Headers) */
+h1, h2, h3 {
+    color: #E0E1DD;
+    /* Ajuste o padding-left do seu h1 principal */
+}
+
+header {
+    visibility: hidden; /* Oculta o elemento, mas mantém o espaço */
+    height: 0px !important; /* Remove o espaço */
+}
+
+/* 2. Oculta o Botão de Menu que fica no canto superior direito */
+[data-testid="stToolbar"] {
+    visibility: hidden;
+    height: 0px !important;
+    position: fixed; /* Tenta fixar para remover */
+    top: -100px; /* Joga para fora da tela */
+}
+
+/* Remove a borda superior do rodapé nativo do Streamlit, se quiser */
+footer {
+    visibility: hidden;
+    height: 0px !important;
+}
+
+/* ========================================================================= */
+/* 2. Cabeçalho de Login (Topo) */
+/* ========================================================================= */
+
+/* Alvo do st.container que envolve o login, para aplicar a cor de fundo */
+[data-testid="stVerticalBlock"] > div:first-child > [data-testid="stHorizontalBlock"] {
+    background-color: #0E1C30; /* Cor do seu .cabeçalho */
+    padding: 10px 30px; /* Padding interno */
+    margin-bottom: 20px;
+}
+
+/* Título de Login (st.markdown com style='...') */
+.stApp h4 {
+    margin: 0;
+    padding: 0;
+}
+
+/* Estiliza o botão "Sair" do Streamlit */
+/* O seletor .stButton > button atinge o elemento <button> do componente Streamlit */
+.stButton button {
+    background-color: #1ED760 !important;
+    border-color: #1ED760 !important;
+    color: #0D1B2A !important;
+    font-weight: bold !important;
+    border-radius: 8px !important;
+    height: 40px; /* Aumentei um pouco */
+    transition: background-color .2s ease;
+}
+
+/* 2. Estilo do Texto Interno (Onde a cor branca está pegando) */
+/* Mirando o elemento de texto (geralmente um <div>) DENTRO do botão */
+.stButton button > div {
+    /* Cor do Texto: Escuro (#0D1B2A) - ESTE DEVE RESOLVER O PROBLEMA DO TEXTO BRANCO */
+    color: #0D1B2A !important; 
+    font-weight: bold !important;
+}
+
+.stButton button:hover {
+    background-color: #39FF7E !important;
+    border-color: #39FF7E !important;
+    color: #0D1B2A !important;
+}
+
+/* 4. Estilo do Texto Interno no Hover (Garante que não volte para o branco) */
+.stButton button:hover > div {
+    /* Manter a cor do texto escura no hover */
+    color: #0D1B2A !important; 
+}
+
+/* ========================================================================= */
+/* 3. Título Principal (main-title) e Legenda (image-label) */
+/* ========================================================================= */
+
+/* Estilo para o H1 principal */
+.main-title {
+    color: #E0E1DD;
+    padding-left: 30px;
+    margin-top: 30px;
+    margin-bottom: 15px;
+    font-size: 2.2em; /* Exemplo de ajuste de fonte */
+}
+
+/* Estilo para a legenda (p.image-label) */
+.image-label {
+    color: #E0E1DD;
+    padding-left: 30px;
+    margin-bottom: 20px;
+}
+
+
+/* ========================================================================= */
+/* 4. Tabs e Conteúdo */
+/* ========================================================================= */
+
+/* Container geral dos botões das tabs */
+[data-testid="stTabs"] {
+    margin-left: 30px; /* Ajusta a margem esquerda para alinhar com o h1 */
+}
+
+/* Estiliza os botões das Tabs (Substitui .tab-btn) */
+[data-testid="stTabs"] button {
+    background-color: #08121E !important; /* Cor de fundo das tabs inativas */
+    color: #E0E1DD !important; /* Cor do texto das tabs inativas */
+    border-radius: 8px 8px 0 0 !important;
+    font-weight: bold !important;
+    padding: 13px !important;
+    border: none !important;
+}
+
+/* Tab Ativa (Substitui .tab-btn.active) */
+[data-testid="stTabs"] button[aria-selected="true"] {
+    background-color: #0E1C30 !important; /* Cor de fundo da tab ativa */
+    color: #1ED760 !important; /* Cor do texto da tab ativa */
+}
+
+[data-testid="stTabs"] button[aria-selected="true"] p,
+[data-testid="stTabs"] button[aria-selected="true"] div,
+[data-testid="stTabs"] button[aria-selected="true"] span {
+    color: #1ED760 !important; /* Força o texto interno a ser verde */
+}
+
+/* Cor de fundo do conteúdo da Tab (Substitui .conteudo.show) */
+/* Este seletor é mais complexo, mira o container de todo o conteúdo da tab */
+[data-testid="stTabContent"] > div {
+    background-color: #0E1C30 !important;
+    border-radius: 0 8px 8px 8px; /* Cantos arredondados, exceto o topo esquerdo/direito */
+    padding: 30px !important; 
+    min-height: 55vh;
+}
+
+/* Títulos dentro das Tabs (st.header/st.subheader) */
+.content-box h2, .content-box h3 {
+    padding-left: 0 !important; /* Remove o padding padrão do Streamlit dentro da caixa */
+}
+
+/* ========================================================================= */
+/* 5. Estilo para st.info (Métricas) */
+/* ========================================================================= */
+
+/* Estiliza as caixas st.info para se parecerem com infos do spotify */
+[data-testid="stAlert"] {
+    background-color: #08121E !important;
+    border-left: 5px solid #1ED760 !important; /* Linha de destaque verde */
+    color: #E0E1DD !important;
+    border-radius: 8px !important;
+}
