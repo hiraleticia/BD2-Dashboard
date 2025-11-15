@@ -1,4 +1,5 @@
 import streamlit as st
+import altair as alt
 import sqlalchemy
 import psycopg2
 import pandas as pd
@@ -296,6 +297,26 @@ def get_top5_musicas_ouvidas(user_id):
         LIMIT 5;'''
     return run_query(query, (user_id,))
 
+def get_tempo_total_escutado_segundos(user_id):
+    query = """
+    SELECT
+        SUM(EXTRACT(EPOCH FROM M.tempo_de_duracao) * EM.numero_reproducoes) AS total_segundos
+    FROM
+        EscutaMusica EM
+    JOIN
+        Musica M ON EM.id_da_musica = M.id_da_musica
+    WHERE
+        EM.id_da_conta = %s;"""
+
+    df = run_query(query, (user_id,))
+
+    # Se o usuário não ouviu nada, o SUM retornará Nulo (None)
+    if df.empty or pd.isna(df.iloc[0]['total_segundos']):
+        return 0  # Retorna 0 segundos
+
+    # Retorna o total de segundos como um inteiro
+    return int(df.iloc[0]['total_segundos'])
+
 # ----------------------------------------
 # 1. Função para carregar o CSS
 # ----------------------------------------
@@ -424,12 +445,76 @@ with tab1:
         st.info("🎵 Total de músicas: 1.234")
 
         st.info("👥 Total de artistas: 456")
+    st.subheader("TOP 5 músicas mais reproduzidas: 🎧")
 
+    # Obter os dados
+    try:
+        df_top_musicas = get_top_5_musicas_geral()
+    except Exception as e:
+        st.error(f"Erro ao buscar os dados do banco de dados: {e}")
+        df_top_musicas = pd.DataFrame()
+
+    if not df_top_musicas.empty:
+
+        # 2. Criar o Gráfico de Barras com Altair
+        chart = alt.Chart(df_top_musicas).mark_bar().encode(
+            # Eixo X
+            x=alt.X('total_de_reproducoes',
+                    title='Total de Reproduções',
+                    axis=alt.Axis(format=',')
+                    ),
+            # Eixo Y
+            y=alt.Y('nome_da_musica',
+                    title='Música',
+                    sort='-x'
+                    ),
+            # Cor
+            color=alt.Color('nome_do_album',
+                            title='Álbum',
+                            legend=alt.Legend(orient="bottom")
+                            ),
+            # Tooltip
+            tooltip=[
+                alt.Tooltip('nome_da_musica', title='Música'),
+                alt.Tooltip('nome_do_album', title='Álbum'),
+                alt.Tooltip('total_de_reproducoes', title='Reproduções', format=',')
+            ]
+        ).properties(
+            height=350,
+            background='transparent'  # <-- ADICIONADO: Fundo principal transparente
+        ).interactive()
+
+        # --- INÍCIO DAS CONFIGURAÇÕES MANUAIS DE TEMA ESCURO ---
+        chart = chart.configure_view(
+            # Fundo da área do gráfico transparente
+            fill='transparent',
+            strokeWidth=0  # Remove a borda da visualização
+        ).configure_axis(
+            # Cor do texto e dos eixos
+            domainColor='#FFFFFF',  # Cor da linha do eixo (ex: Y)
+            gridColor='#555555',  # Cor das linhas de grade (ex: X)
+            labelColor='#FFFFFF',  # Cor dos rótulos (ex: nomes das músicas)
+            titleColor='#FFFFFF'  # Cor dos títulos dos eixos (ex: "Música")
+        ).configure_legend(
+            # Cor da legenda
+            labelColor='#FFFFFF',
+            titleColor='#FFFFFF'
+        )
+        # --- FIM DAS CONFIGURAÇÕES MANUAIS ---
+
+        # A chamada DEVE incluir theme=None para respeitar nossa configuração manual
+        st.altair_chart(chart, use_container_width=True, theme=None)
+
+        with st.expander("Ver dados brutos"):
+            st.dataframe(df_top_musicas, use_container_width=True)
+
+    else:
+        st.info("Nenhum dado encontrado para as Top 5 músicas.")
     with col2:
 
         st.info("📀 Total de álbuns: 789")
 
-        st.info("⏱️ Tempo total: 45h 23min")
+        st.info("⏱️ Total de podcasts: 45h 23min")
 
    
 
@@ -661,9 +746,17 @@ with tab3:
     with col1:
         st.metric("Total de Músicas Ouvidas", total_musicas)
 
-    with col2:
+    total_segundos = get_tempo_total_escutado_segundos(user_id_logado)
+    if total_segundos is None:
+        total_segundos = 0
 
-        st.metric("Horas ouvindo", "128h")
+    total_minutos = total_segundos // 60
+
+    horas = total_minutos // 60
+
+    minutos = total_minutos % 60
+    with col2:
+        st.metric("Horas ouvindo", f"{horas}h {minutos}m")
 
     # Métrica 3: Artista Favorito
     df_art_fav = get_top1_art_ouvido(user_id_logado)
@@ -683,7 +776,7 @@ with tab3:
 
     st.markdown("---")
 
-    st.subheader("📈 Histórico de audição")
+    st.subheader("📈 Análise de estatísticas")
 
    
 
