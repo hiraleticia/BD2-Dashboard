@@ -4,18 +4,6 @@ import pandas as pd
 import plotly.express as px
 from db import run_query
 
-def get_art_mais_5albuns():
-    """Nomes dos artistas que possuem mais de 5 albuns publicados"""
-    query = """
-    SELECT Conta.nome FROM Conta, Artista, Conteudo, Album
-    WHERE Conta.id = Artista.id_do_artista
-        AND Artista.id_do_artista = Conteudo.id_do_artista
-        AND Conteudo.id = Album.id_album
-        GROUP BY Conta.nome
-        	HAVING COUNT(Album.id_album) > 5;"""
-
-    return run_query(query)
-
 # ------ TAB ARTISTA ------
 def get_top3_musicas_art(id_do_artista):
     # Top 3 músicas mais ouvidas de um artista
@@ -67,6 +55,79 @@ def get_album_mais_salvo_do_artista(id_do_artista):
 
     return run_query(query, (id_do_artista,))
 
+
+def check_artist_type(id_artista):
+    #Verifica se um artista tem conteúdo de podcast ou de álbum.
+    query_podcast = """
+        SELECT EXISTS (
+            SELECT 1
+            FROM Podcast p
+            JOIN Conteudo c ON p.id_podcast = c.id
+            WHERE c.id_do_artista = %s
+        );
+    """
+    df_podcast = run_query(query_podcast, (id_artista,))
+    if not df_podcast.empty and df_podcast.iloc[0]['exists']:
+        return 'podcaster'
+
+    # Verifica se existe algum álbum associado a este artista
+    query_album = """
+        SELECT EXISTS (
+            SELECT 1
+            FROM Album a
+            JOIN Conteudo c ON a.id_album = c.id
+            WHERE c.id_do_artista = %s
+        );
+    """
+    df_album = run_query(query_album, (id_artista,))
+    if not df_album.empty and df_album.iloc[0]['exists']:
+        return 'musico'
+    return 'desconhecido'
+
+def get_top3_episodios_podcaster(id_artista):
+    # Retorna os top 3 episódios mais ouvidos de um podcaster
+    query = """
+    SELECT
+        e.nome,
+        ee.numero_reproducoes
+    FROM EscutaEpisodio ee
+    JOIN Episodio e ON ee.id_episodio = e.id_episodio
+    JOIN Podcast p ON e.id_podcast = p.id_podcast
+    JOIN Conteudo c ON p.id_podcast = c.id
+    WHERE c.id_do_artista = %s
+    ORDER BY ee.numero_reproducoes DESC
+    LIMIT 3;
+    """
+    return run_query(query, (id_artista,))
+
+
+def get_seguidores_podcast_artista(id_artista):
+    # Retorna o total de seguidores dos podcasts de um artista
+    query = """
+    SELECT
+        COUNT(sp.id_da_conta) AS total_seguidores
+    FROM SeguePodcast sp
+    JOIN Podcast p ON sp.id_podcast = p.id_podcast
+    JOIN Conteudo c ON p.id_podcast = c.id
+    WHERE c.id_do_artista = %s;
+    """
+    return run_query(query, (id_artista,))
+
+
+def get_all_episode_plays_by_artist(id_artista):
+    # Retorna as reproduções dos episódios de um podcaster
+    query = """
+    SELECT
+        e.nome,
+        ee.numero_reproducoes
+    FROM EscutaEpisodio ee
+    JOIN Episodio e ON ee.id_episodio = e.id_episodio
+    JOIN Podcast p ON e.id_podcast = p.id_podcast
+    JOIN Conteudo c ON p.id_podcast = c.id
+    WHERE c.id_do_artista = %s AND ee.numero_reproducoes > 0
+    ORDER BY ee.numero_reproducoes DESC;
+    """
+    return run_query(query, (id_artista,))
 
 # ------ TAB GERAL ------
 def get_top5_musicas_geral():
@@ -132,20 +193,6 @@ def get_top5_podcast_seguidos():
 
     return run_query(query)
 
-
-def get_art_5album():
-    # Nomes dos artistas que possuem mais de 5 albuns publicados
-    query = """
-    SELECT Conta.nome FROM Conta, Artista, Conteudo, Album
-    WHERE Conta.id = Artista.id_do_artista
-        AND Artista.id_do_artista = Conteudo.id_do_artista
-        AND Conteudo.id = Album.id_album
-        GROUP BY Conta.nome
-        	HAVING COUNT(Album.id_album) > 5;"""
-
-    return run_query(query)
-
-
 def get_art_mais_mus_publi():
     # Artista com o maior número de músicas publicadas
     query = '''
@@ -187,7 +234,7 @@ def get_top1_episodio_ouvido():
     SELECT Episodio.nome, EscutaEpisodio.numero_reproducoes
     FROM EscutaEpisodio
         JOIN Episodio ON EscutaEpisodio.id_episodio = Episodio.id_episodio
-        WHERE EscutaEpisodio.id_da_conta = :id_usuauio_logado
+        WHERE EscutaEpisodio.id_da_conta = %s
         ORDER BY EscutaEpisodio.numero_reproducoes DESC
         LIMIT 1;'''
     return run_query(query)
@@ -282,27 +329,15 @@ def get_top5_musicas_ouvidas(user_id):
         WHERE escutamusica.id_da_conta = %s
         GROUP BY musica.id_da_musica, musica.nome, escutamusica.numero_reproducoes
         ORDER BY escutamusica.numero_reproducoes DESC
-        LIMIT 5;
-    SELECT musica.nome,
-        escutamusica.numero_reproducoes
-    FROM musica
-        JOIN escutamusica ON musica.id_da_musica = escutamusica.id_da_musica
-        WHERE escutamusica.id_da_conta = %s
-        GROUP BY musica.id_da_musica, musica.nome, escutamusica.numero_reproducoes
-        ORDER BY escutamusica.numero_reproducoes DESC
         LIMIT 5;'''
     return run_query(query, (user_id,))
 
 def get_tempo_total_escutado_segundos(user_id):
     query = """
-    SELECT
-        SUM(EXTRACT(EPOCH FROM M.tempo_de_duracao) * EM.numero_reproducoes) AS total_segundos
-    FROM
-        EscutaMusica EM
-    JOIN
-        Musica M ON EM.id_da_musica = M.id_da_musica
-    WHERE
-        EM.id_da_conta = %s;"""
+    SELECT SUM(EXTRACT(EPOCH FROM M.tempo_de_duracao) * EM.numero_reproducoes) AS total_segundos
+        FROM EscutaMusica EM
+        JOIN Musica M ON EM.id_da_musica = M.id_da_musica
+        WHERE EM.id_da_conta = %s;"""
 
     df = run_query(query, (user_id,))
 

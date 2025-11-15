@@ -112,80 +112,48 @@ def plot_info_artista():
 
     st.success(f"Artista selecionado: {artista_escolhido}")
 
-    col_metric_1, col_metric_2 = st.columns(2)
 
-    # Métrica: Top 3 Músicas
-    # Métrica: Top 3 Músicas
-    with col_metric_1:
-        st.markdown("<h5>Top 3 Músicas Mais Ouvidas</h5>", unsafe_allow_html=True)
-        df_top3_musicas = q.get_top3_musicas_art(id_artista)  # Usando a função corrigida
+    artist_type = q.check_artist_type(id_artista)
 
-        if not df_top3_musicas.empty:
-            # 1. Criar uma string formatada para a lista
-            lista_musicas_formatada = ""
+    # ----- CASO 1: O ARTISTA É UM MÚSICO -----
+    if artist_type == 'musico':
+        st.markdown("---")
+        st.subheader(f"Análise do Artista: {artista_escolhido}")
 
-            # 2. Iterar sobre o DataFrame para construir a lista
-            # Usamos .reset_index() para garantir a numeração 1, 2, 3
-            for index, row in df_top3_musicas.reset_index().iterrows():
-                # Formata o texto de "reprodução"
-                plays_text = "reprodução" if row['numero_reproducoes'] == 1 else "reproduções"
+        col_metric_1, col_metric_2 = st.columns(2)
 
-                # Adiciona à string, ex: "1. Nome da Música (10 reproduções)"
-                lista_musicas_formatada += f"{index + 1}. **{row['nome']}** ({row['numero_reproducoes']} {plays_text})\n"
+        # Métrica: Top 3 Músicas
+        with col_metric_1:
+            st.markdown("<h5>Top 3 Músicas Mais Ouvidas</h5>", unsafe_allow_html=True)
+            df_top3_musicas = q.get_top3_musicas_art(id_artista)
+            if not df_top3_musicas.empty:
+                lista_musicas_formatada = ""
+                for index, row in df_top3_musicas.reset_index().iterrows():
+                    plays_text = "reprodução" if row['numero_reproducoes'] == 1 else "reproduções"
+                    lista_musicas_formatada += f"{index + 1}. **{row['nome']}** ({row['numero_reproducoes']} {plays_text})\n"
+                st.markdown(lista_musicas_formatada)
+            else:
+                st.info("Este artista não possui músicas em ranking.")
 
-            # 3. Exibir a lista com st.markdown
-            st.markdown(lista_musicas_formatada)
+        # Métrica: Álbum Mais Salvo
+        with col_metric_2:
+            st.markdown("<h5>Álbum Mais Salvo</h5>", unsafe_allow_html=True)
+            df_album_salvo = q.get_album_mais_salvo_do_artista(id_artista)
+            if not df_album_salvo.empty:
+                album_nome = df_album_salvo.iloc[0]['nome_do_album']
+                salvos = df_album_salvo.iloc[0]['total_de_vezes_salvo']
+                st.metric(label="Álbum Destaque",
+                          value=album_nome,
+                          delta=f"{salvos} salvamentos")
+            else:
+                st.info("Este artista não possui álbuns salvos.")
 
-        else:
-            st.info("Este artista não possui músicas em ranking.")
+        st.markdown("---")
 
-    # Métrica: Álbum Mais Salvo
-    with col_metric_2:
-        st.markdown("<h5>Álbum Mais Salvo</h5>", unsafe_allow_html=True)
-        df_album_salvo = q.get_album_mais_salvo_do_artista(id_artista)
-        if not df_album_salvo.empty:
-            album_nome = df_album_salvo.iloc[0]['nome_do_album']
-            salvos = df_album_salvo.iloc[0]['total_de_vezes_salvo']
-            st.metric(label="Álbum Destaque",
-                      value=album_nome,
-                      delta=f"{salvos} salvos")
-        else:
-            st.info("Este artista não possui álbuns salvos.")
-
-    st.markdown("---")
-
-    # --------- 2) Dropdown dependente de álbum ---------
-    st.subheader("Selecione um álbum deste artista")
-
-    query_albuns = """
-        SELECT al.id_album, ct.nome AS nome_album
-        FROM Album al
-        JOIN Conteudo ct ON al.id_album = ct.id
-        WHERE ct.id_do_artista = %s
-        ORDER BY nome_album;
-    """
-
-    df_albuns = run_query(query_albuns, params=(id_artista,))
-
-    if df_albuns.empty:
-        st.warning("Este artista não possui álbuns cadastrados.")
-        st.markdown("</div>", unsafe_allow_html=True)
-    else:
-        album_escolhido = st.selectbox(
-            "Álbuns disponíveis:",
-            df_albuns["nome_album"].tolist()
-        )
-        id_album = int(df_albuns[df_albuns["nome_album"] == album_escolhido]["id_album"].iloc[0])
-
-        st.info(f"Álbum selecionado: {album_escolhido}")
-
+        # --- Discografia (Gráfico de Barras) ---
         st.subheader(f"Discografia de {artista_escolhido}")
-
-        # 1. Query para contar músicas por álbum
         query_contagem_musicas = """
-                    SELECT
-                        ct.nome AS nome_album,
-                        COUNT(m.id_da_musica) AS total_musicas
+                    SELECT ct.nome AS nome_album, COUNT(m.id_da_musica) AS total_musicas
                     FROM Musica m
                     JOIN Album al ON m.id_album = al.id_album
                     JOIN Conteudo ct ON al.id_album = ct.id
@@ -193,79 +161,142 @@ def plot_info_artista():
                     GROUP BY ct.nome
                     ORDER BY total_musicas DESC;
                 """
-
-        # 2. Executa a query
         df_contagem = run_query(query_contagem_musicas, params=(id_artista,))
-
-        # 3. Verifica se há dados e plota o gráfico
         if not df_contagem.empty:
             fig_bar = px.bar(
                 df_contagem,
-                x="nome_album",
-                y="total_musicas",
+                x="nome_album", y="total_musicas",
                 title="Contagem de Músicas por Álbum",
                 labels={'nome_album': 'Álbum', 'total_musicas': 'Nº de Músicas'},
-                text='total_musicas'  # Mostra o número no topo da barra
+                text='total_musicas'
             )
-
-            # 4. Aplica o estilo escuro e formatação
             fig_bar.update_layout(
-                paper_bgcolor='rgba(0,0,0,0)',  # Fundo transparente
-                plot_bgcolor='rgba(0,0,0,0)',  # Fundo transparente
-                title_font_color='#FFFFFF',  # Título branco
-                font_color='#FFFFFF',  # Eixos e legendas brancos
-                xaxis={'categoryorder': 'total descending'}  # Ordena as barras
+                paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
+                title_font_color='#FFFFFF', font_color='#FFFFFF',
+                xaxis={'categoryorder': 'total descending'}
             )
-
-            fig_bar.update_traces(
-                textposition='outside',  # Posição do texto (fora da barra)
-                marker_color='#1ED760'  # Cor das barras (verde Spotify)
-            )
-
+            fig_bar.update_traces(textposition='outside', marker_color='#1ED760')
             st.plotly_chart(fig_bar, use_container_width=True)
         else:
             st.info("Este artista não possui músicas cadastradas em álbuns.")
 
-        # Adiciona um separador visual
         st.markdown("---")
 
-        # --------- 3) Gráfico de pizza: músicas mais ouvidas ---------
-        st.subheader("Músicas escutadas do álbum selecionado")
+        # --- Análise por Álbum (Dropdown Interativo) ---
+        st.subheader("Análise por Álbum")
+        query_albuns = """
+                    SELECT al.id_album, ct.nome AS nome_album
+                    FROM Album al
+                    JOIN Conteudo ct ON al.id_album = ct.id
+                    WHERE ct.id_do_artista = %s
+                    ORDER BY nome_album;
+                """
+        df_albuns = run_query(query_albuns, params=(id_artista,))
 
-        query_musicas = """
-            SELECT m.nome AS musica,
-                   COUNT(em.id_da_conta) AS reproducoes
-            FROM Musica m
-            LEFT JOIN EscutaMusica em
-                   ON m.id_da_musica = em.id_da_musica
-            WHERE m.id_album = %s
-            GROUP BY m.nome
-            ORDER BY reproducoes DESC;
-        """
-
-        df_musicas = run_query(query_musicas, params=(id_album,))
-
-        if df_musicas.empty:
-            st.warning("Nenhuma reprodução registrada para este álbum.")
+        if df_albuns.empty:
+            st.warning("Este artista não possui álbuns cadastrados.")
         else:
-            fig = px.pie(
-                df_musicas,
-                names="musica",
-                values="reproducoes",
-                title=f"Músicas mais escutadas — {album_escolhido}"
+            album_escolhido = st.selectbox(
+                "Selecione um álbum do artista:",
+                df_albuns["nome_album"].tolist(),
+                key="select_album_musico"  # Key única
             )
-            fig.update_layout(
-                paper_bgcolor='rgba(0,0,0,0)',  # Fundo principal transparente
-                plot_bgcolor='rgba(0,0,0,0)',  # Fundo da área do gráfico transparente
-                font_color='#FFFFFF',  # Cor da fonte (título e legenda)
-                legend_font_color = '#FFFFFF',
-                title_font_color = '#FFFFFF'
+            id_album = int(df_albuns[df_albuns["nome_album"] == album_escolhido]["id_album"].iloc[0])
+
+            st.subheader(f'Músicas escutadas do álbum "{album_escolhido}" ')
+            query_musicas = """
+                        SELECT m.nome AS musica,
+                               COUNT(em.id_da_conta) AS reproducoes
+                        FROM Musica m
+                        LEFT JOIN EscutaMusica em
+                               ON m.id_da_musica = em.id_da_musica
+                        WHERE m.id_album = %s
+                        GROUP BY m.nome
+                        ORDER BY reproducoes DESC;
+                    """
+            df_musicas = run_query(query_musicas, params=(id_album,))
+            if df_musicas.empty:
+                st.warning("Nenhuma reprodução registrada para este álbum.")
+            else:
+                fig = px.pie(
+                    df_musicas,
+                    names="musica",
+                    values="reproducoes",
+                    title=f"Músicas mais escutadas — {album_escolhido}"
+                )
+                fig.update_layout(
+                    paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)',
+                    font_color='#FFFFFF', legend_font_color='#FFFFFF',
+                    title_font_color='#FFFFFF'
+                )
+                st.plotly_chart(fig)
+
+    # ----- CASO 2: O ARTISTA É UM PODCASTER -----
+    elif artist_type == 'podcaster':
+        st.markdown("---")
+        st.subheader(f"Análise do Artista: {artista_escolhido}")
+
+        col_metric_1, col_metric_2 = st.columns(2)
+
+        # Métrica: Top 3 Episódios
+        with col_metric_1:
+            st.markdown("<h5>Top 3 Episódios Mais Ouvidos</h5>", unsafe_allow_html=True)
+            df_top3_episodios = q.get_top3_episodios_podcaster(id_artista)
+
+            if not df_top3_episodios.empty:
+                lista_episodios_formatada = ""
+                for index, row in df_top3_episodios.reset_index().iterrows():
+                    plays_text = "reprodução" if row['numero_reproducoes'] == 1 else "reproduções"
+                    lista_episodios_formatada += f"{index + 1}. **{row['nome']}** ({row['numero_reproducoes']} {plays_text})\n"
+                st.markdown(lista_episodios_formatada)
+            else:
+                st.info("Este podcaster não possui episódios em ranking.")
+
+        # Métrica: Total de Seguidores do Podcast
+        with col_metric_2:
+            st.markdown("<h5>Total de Seguidores</h5>", unsafe_allow_html=True)
+            df_seguidores = q.get_seguidores_podcast_artista(id_artista)
+
+            if not df_seguidores.empty:
+                total_seguidores = df_seguidores.iloc[0]['total_seguidores']
+                st.metric(label="Seguidores",
+                          value=f"{total_seguidores}")
+            else:
+                st.info("Nenhuma contagem de seguidores encontrada.")
+
+        st.markdown("---")
+        st.subheader("Distribuição de Reproduções por Episódio")
+
+        # 1. Chamar a nova query
+        df_all_eps = q.get_all_episode_plays_by_artist(id_artista)
+
+        # 2. Verificar e plotar
+        if df_all_eps.empty:
+            st.info("Nenhuma reprodução registrada para os episódios deste podcaster.")
+        else:
+            fig_pie_eps = px.pie(
+                df_all_eps,
+                names="nome",
+                values="numero_reproducoes",
+                title=f"Reproduções de Episódios — {artista_escolhido}",
+                hole=0.3  # Opcional: cria um gráfico de "rosca" (donut)
             )
-            st.plotly_chart(fig)
+
+            # 3. Aplicar o tema escuro
+            fig_pie_eps.update_layout(
+                paper_bgcolor='rgba(0,0,0,0)',
+                plot_bgcolor='rgba(0,0,0,0)',
+                font_color='#FFFFFF',
+                legend_font_color='#FFFFFF',
+                title_font_color='#FFFFFF'
+            )
+            st.plotly_chart(fig_pie_eps, use_container_width=True)
 
 
-
-
+    # ----- CASO 3: ARTISTA SEM CONTEÚDO -----
+    else:
+        st.markdown("---")
+        st.warning("Este artista não possui álbuns ou podcasts registrados no banco de dados.")
 
 
 #--------------------------------------------
@@ -292,14 +323,12 @@ def plot_tempo_total_escutado(user_id_logado):
     st.metric("Horas ouvindo", f"{horas}h {minutos}m")
 
 def plot_artista_favorito(user_id_logado):
-    # Métrica 3: Artista Favorito
     df_art_fav = q.get_top1_art_ouvido(user_id_logado)
     artista_fav = df_art_fav.iloc[0]['nome'] if not df_art_fav.empty else "N/A"
     
-    st.metric("Artistas favoritos", artista_fav)
+    st.metric("Artista favorito", artista_fav)
 
-def plot_genero_preferido(user_id_logado):
-    # Métrica 2: Gênero de Álbum Favorito
+def plot_genero_preferido(user_id_logado): ###### ALTERAR
     df_gen_album = q.get_genero_album_ouvido(user_id_logado)
     genero_album_pref = df_gen_album.iloc[0]['genero'] if not df_gen_album.empty else "N/A"
-    st.metric("Gênero Preferido", genero_album_pref)
+    st.metric("Gênero de Música Preferido", genero_album_pref)
