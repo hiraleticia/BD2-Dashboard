@@ -1,5 +1,6 @@
 import streamlit as st
 import os
+from db import init_connection, run_query
 
 # 1. Função para carregar o CSS
 def load_css(file_name):
@@ -40,18 +41,42 @@ if st.session_state.logged_in:
 # Função de login (chama ao clicar no botão)
 def do_login():
     """Lida com a lógica de login e redireciona para a Home Page."""
-    if st.session_state.input_username.strip() == "":
+
+    username_input = st.session_state.input_username.strip()
+
+    if username_input == "":
         st.error("Por favor, digite seu nome de usuário.")
         return
 
-    # 1. Armazena o nome de usuário e marca como logado
-    st.session_state.username = st.session_state.input_username
-    st.session_state.logged_in = True
-    
-    # 2. Redireciona para a página principal (spotify.py)
-    # Como spotify.py está na raiz, a chamada é direta pelo nome do arquivo
-    st.switch_page("app.py")
+    # 1. PREPARA A QUERY PARA VALIDAR O USUÁRIO
+    query = """
+        SELECT id, nome_de_usuario 
+        FROM Conta 
+        WHERE nome_de_usuario = %s;
+    """
 
+    # 2. EXECUTA A QUERY
+    # Passamos o nome de usuário como uma tupla (parâmetro)
+    try:
+        df_user = run_query(query, (username_input,))
+    except Exception as e:
+        st.error(f"Erro ao verificar usuário: {e}")
+        return
+
+    # 3. VERIFICA O RESULTADO
+    if df_user.empty:
+        # Usuário NÃO encontrado
+        st.error("Usuário não encontrado. Verifique o nome de usuário.")
+        st.session_state.logged_in = False
+    else:
+        # Usuário ENCONTRADO
+        # Armazena as informações do usuário na sessão
+        st.session_state.username = df_user.iloc[0]['nome_de_usuario']
+        st.session_state.user_id = int(df_user.iloc[0]['id'])
+        st.session_state.logged_in = True
+
+        # 4. Redireciona para a página principal
+        st.switch_page("app.py")
 
 # CSS personalizado (Mantenha o CSS do seu login.py aqui)
 st.markdown("""
