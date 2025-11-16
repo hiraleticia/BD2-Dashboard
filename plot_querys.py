@@ -8,6 +8,27 @@ from db import run_query
 #--------------------------------------------
 #--------------------GERAL-------------------
 #--------------------------------------------
+
+def plot_total_musicas():
+    df_total_musicas = q.get_total_musicas_geral_count()
+    total_musicas = df_total_musicas.iloc[0]['total'] if not df_total_musicas.empty else 0
+    st.metric("🎵 Total de músicas", total_musicas)
+
+def plot_total_artistas():
+    df_total_artistas = q.get_total_artistas_geral_count()
+    total_musicas = df_total_artistas.iloc[0]['total'] if not df_total_artistas.empty else 0
+    st.metric("👥 Total de artistas", total_musicas)
+
+def plot_total_album():
+    df_total_album = q.get_total_album_geral_count()
+    total_album = df_total_album.iloc[0]['total'] if not df_total_album.empty else 0
+    st.metric("📀 Total de álbuns", total_album)
+
+def plot_total_podcast():
+    df_total_podcast = q.get_total_podcasts_geral_count()
+    total_podcast = df_total_podcast.iloc[0]['total'] if not df_total_podcast.empty else 0
+    st.metric("🎙️ Total de podcasts", total_podcast)
+
 def plot_top5_musicas_geral():
     try:
         df_top_musicas = q.get_top5_musicas_geral()
@@ -42,10 +63,9 @@ def plot_top5_musicas_geral():
             ]
         ).properties(
             height=350,
-            background='transparent'  # <-- ADICIONADO: Fundo principal transparente
+            background='transparent'
         ).interactive()
 
-        # --- INÍCIO DAS CONFIGURAÇÕES MANUAIS DE TEMA ESCURO ---
         chart = chart.configure_view(
             # Fundo da área do gráfico transparente
             fill='transparent',
@@ -101,8 +121,25 @@ def plot_top_10_albuns():
                 alt.Tooltip('total_de_musicas', title='Nº de Faixas', format='d')
             ]
         ).properties(
-            height=400
+            height=400,
+            background = 'transparent'
         ).interactive()
+
+        chart = chart.configure_view(
+            # Fundo da área do gráfico transparente
+            fill='transparent',
+            strokeWidth=0  # Remove a borda da visualização
+        ).configure_axis(
+            # Cor do texto e dos eixos
+            domainColor='#FFFFFF',  # Cor da linha do eixo (ex: Y)
+            gridColor='#555555',  # Cor das linhas de grade (ex: X)
+            labelColor='#FFFFFF',  # Cor dos rótulos (ex: nomes das músicas)
+            titleColor='#FFFFFF'  # Cor dos títulos dos eixos (ex: "Música")
+        ).configure_legend(
+            # Cor da legenda
+            labelColor='#FFFFFF',
+            titleColor='#FFFFFF'
+        )
 
         st.altair_chart(chart, use_container_width=True)
 
@@ -145,10 +182,25 @@ def plot_top_5_albuns_salvos():
                 alt.Tooltip('total_salvos', title='Total de Salvamentos', format=',')
             ]
         ).properties(
-            height=300
+            height=300,
+            background='transparent'
         ).interactive()
-
-        # 4. Exibir o gráfico no Streamlit
+        chart = chart.configure_view(
+            # Fundo da área do gráfico transparente
+            fill='transparent',
+            strokeWidth=0  # Remove a borda da visualização
+        ).configure_axis(
+            # Cor do texto e dos eixos
+            domainColor='#FFFFFF',  # Cor da linha do eixo (ex: Y)
+            gridColor='#555555',  # Cor das linhas de grade (ex: X)
+            labelColor='#FFFFFF',  # Cor dos rótulos (ex: nomes das músicas)
+            titleColor='#FFFFFF'  # Cor dos títulos dos eixos (ex: "Música")
+        ).configure_legend(
+            # Cor da legenda
+            labelColor='#FFFFFF',
+            titleColor='#FFFFFF'
+        )
+        # Exibir o gráfico no Streamlit
         st.altair_chart(chart, use_container_width=True)
 
     else:
@@ -180,7 +232,6 @@ def plot_top_5_podcasts_seguidos():
                     title='Nome do Podcast',
                     sort='-x' # Garante que o podcast mais seguido fique no topo
             ),
-
             # Cor: Definida como um valor fixo
             color=alt.value("#9B59B6"), # Uma cor roxa para destaque (pode ser ajustada)
 
@@ -190,7 +241,8 @@ def plot_top_5_podcasts_seguidos():
                 alt.Tooltip('total_seguidores', title='Total de Seguidores', format=',')
             ]
         ).properties(
-            height=300
+            height=300,
+            background='transparent'
         ).interactive()
 
         # 4. Exibir o gráfico no Streamlit
@@ -203,9 +255,7 @@ def plot_top_5_podcasts_seguidos():
 #--------------------------------------------
 #-------------------ARTISTA------------------
 #--------------------------------------------
-def plot_info_artista():
-# --- 1. DESTAQUES GERAIS DA CATEGORIA ---
-    st.subheader("Destaques da Categoria")
+def plot_artista_mais_seguido():
     df_mais_seguidores = q.get_art_mais_seguidores()
     if not df_mais_seguidores.empty:
         artista_nome = df_mais_seguidores.iloc[0]['nome']
@@ -216,39 +266,35 @@ def plot_info_artista():
     else:
         st.info("Não foi possível carregar o artista com mais seguidores.")
 
-    st.markdown("---")
+def plot_artista_mais_mus_publi():
+    df_mais_music_publicada = q.get_art_mais_mus_publi()
+    artista_music_publicada = df_mais_music_publicada.iloc[0]['nome_artista']
+    st.metric(label="Artista com mais músicas publicadas",
+              value=artista_music_publicada)
 
-    # --------- 1) Dropdown de artista ---------
+
+def plot_info_artista():
+    # --------- Dropdown de artista ---------
     st.subheader("Selecione um artista para análise")
-
-    query_artistas = """
-        SELECT a.id_do_artista, c.nome
-        FROM Artista a
-        JOIN Conta c ON a.id_do_artista = c.id
-        ORDER BY c.nome;
-    """
-    df_artistas = run_query(query_artistas)
-
+    df_artistas = q.get_all_artists()
     artista_escolhido = st.selectbox(
         "Digite para filtrar artistas:",
         df_artistas["nome"].tolist()
     )
 
     id_artista = int(df_artistas[df_artistas["nome"] == artista_escolhido]["id_do_artista"].iloc[0])
-
     st.success(f"Artista selecionado: {artista_escolhido}")
-
 
     artist_type = q.check_artist_type(id_artista)
 
-    # ----- CASO 1: O ARTISTA É UM MÚSICO -----
+    # ----- O ARTISTA É UM MÚSICO -----
     if artist_type == 'musico':
         st.markdown("---")
         st.subheader(f"Análise do Artista: {artista_escolhido}")
 
         col_metric_1, col_metric_2 = st.columns(2)
 
-        # Métrica: Top 3 Músicas
+        # Top 3 Músicas
         with col_metric_1:
             st.markdown("<h5>Top 3 Músicas Mais Ouvidas</h5>", unsafe_allow_html=True)
             df_top3_musicas = q.get_top3_musicas_art(id_artista)
@@ -261,7 +307,7 @@ def plot_info_artista():
             else:
                 st.info("Este artista não possui músicas em ranking.")
 
-        # Métrica: Álbum Mais Salvo
+        # Álbum Mais Salvo
         with col_metric_2:
             st.markdown("<h5>Álbum Mais Salvo</h5>", unsafe_allow_html=True)
             df_album_salvo = q.get_album_mais_salvo_do_artista(id_artista)
@@ -278,16 +324,7 @@ def plot_info_artista():
 
         # --- Discografia (Gráfico de Barras) ---
         st.subheader(f"Discografia de {artista_escolhido}")
-        query_contagem_musicas = """
-                    SELECT ct.nome AS nome_album, COUNT(m.id_da_musica) AS total_musicas
-                    FROM Musica m
-                    JOIN Album al ON m.id_album = al.id_album
-                    JOIN Conteudo ct ON al.id_album = ct.id
-                    WHERE ct.id_do_artista = %s
-                    GROUP BY ct.nome
-                    ORDER BY total_musicas DESC;
-                """
-        df_contagem = run_query(query_contagem_musicas, params=(id_artista,))
+        df_contagem = q.get_song_count_per_album(id_artista)
         if not df_contagem.empty:
             fig_bar = px.bar(
                 df_contagem,
@@ -310,14 +347,7 @@ def plot_info_artista():
 
         # --- Análise por Álbum (Dropdown Interativo) ---
         st.subheader("Análise por Álbum")
-        query_albuns = """
-                    SELECT al.id_album, ct.nome AS nome_album
-                    FROM Album al
-                    JOIN Conteudo ct ON al.id_album = ct.id
-                    WHERE ct.id_do_artista = %s
-                    ORDER BY nome_album;
-                """
-        df_albuns = run_query(query_albuns, params=(id_artista,))
+        df_albuns = q.get_albums_by_artist(id_artista)
 
         if df_albuns.empty:
             st.warning("Este artista não possui álbuns cadastrados.")
@@ -330,17 +360,7 @@ def plot_info_artista():
             id_album = int(df_albuns[df_albuns["nome_album"] == album_escolhido]["id_album"].iloc[0])
 
             st.subheader(f'Músicas escutadas do álbum "{album_escolhido}" ')
-            query_musicas = """
-                        SELECT m.nome AS musica,
-                               COUNT(em.id_da_conta) AS reproducoes
-                        FROM Musica m
-                        LEFT JOIN EscutaMusica em
-                               ON m.id_da_musica = em.id_da_musica
-                        WHERE m.id_album = %s
-                        GROUP BY m.nome
-                        ORDER BY reproducoes DESC;
-                    """
-            df_musicas = run_query(query_musicas, params=(id_album,))
+            df_musicas = q.get_song_plays_by_album(id_album)
             if df_musicas.empty:
                 st.warning("Nenhuma reprodução registrada para este álbum.")
             else:
@@ -357,7 +377,7 @@ def plot_info_artista():
                 )
                 st.plotly_chart(fig)
 
-    # ----- CASO 2: O ARTISTA É UM PODCASTER -----
+    # -----  O ARTISTA É UM PODCASTER -----
     elif artist_type == 'podcaster':
         st.markdown("---")
         st.subheader(f"Análise do Artista: {artista_escolhido}")
@@ -429,11 +449,11 @@ def plot_info_artista():
 #-------------------USUARIO------------------
 #--------------------------------------------
 
-def plot_total_musicas(user_id_logado):
-    df_total_musicas = q.get_total_musicas_usuario(user_id_logado)
-    total_musicas = df_total_musicas.iloc[0]['total_musicas'] if not df_total_musicas.empty else 0
+def plot_total_musicas_user(user_id_logado):
+    df_total_musicas_user = q.get_total_musicas_usuario(user_id_logado)
+    total_musicas_user = df_total_musicas_user.iloc[0]['total_musicas'] if not df_total_musicas_user.empty else 0
     
-    st.metric("Total de Músicas Ouvidas", total_musicas)
+    st.metric("Total de Músicas Ouvidas", total_musicas_user)
 
 def plot_tempo_total_escutado(user_id_logado):
     total_segundos = q.get_tempo_total_escutado_segundos(user_id_logado)
@@ -484,7 +504,6 @@ def plot_top5_musicas_usuario(user_id_logado):
             title="Top 5 músicas mais ouvidas",
             labels={'nome': 'Música', 'numero_reproducoes': 'Reproduções'},
             text='numero_reproducoes',
-
         )
 
         fig_bar.update_layout(

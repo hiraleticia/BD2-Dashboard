@@ -129,7 +129,69 @@ def get_all_episode_plays_by_artist(id_artista):
     """
     return run_query(query, (id_artista,))
 
+def get_all_artists():
+    query = """
+        SELECT a.id_do_artista, c.nome
+        FROM Artista a
+        JOIN Conta c ON a.id_do_artista = c.id
+        ORDER BY c.nome;
+    """
+    return run_query(query)
+
+def get_song_count_per_album(id_artista):
+    query = """
+        SELECT ct.nome AS nome_album, COUNT(m.id_da_musica) AS total_musicas
+        FROM Musica m
+        JOIN Album al ON m.id_album = al.id_album
+        JOIN Conteudo ct ON al.id_album = ct.id
+        WHERE ct.id_do_artista = %s
+        GROUP BY ct.nome
+        ORDER BY total_musicas DESC;
+    """
+    return run_query(query, (id_artista,))
+
+def get_albums_by_artist(id_artista):
+    query = """
+        SELECT al.id_album, ct.nome AS nome_album
+        FROM Album al
+        JOIN Conteudo ct ON al.id_album = ct.id
+        WHERE ct.id_do_artista = %s
+        ORDER BY nome_album;
+    """
+    return run_query(query, (id_artista,))
+
+def get_song_plays_by_album(id_album):
+    query = """
+        SELECT m.nome AS musica,
+               COUNT(em.id_da_conta) AS reproducoes
+        FROM Musica m
+        LEFT JOIN EscutaMusica em
+               ON m.id_da_musica = em.id_da_musica
+        WHERE m.id_album = %s
+        GROUP BY m.nome
+        ORDER BY reproducoes DESC;
+    """
+    return run_query(query, (id_album,))
+
 # ------ TAB GERAL ------
+
+def get_total_musicas_geral_count():
+    query = "SELECT COUNT(*) AS total FROM Musica;"
+    return run_query(query)
+
+
+def get_total_artistas_geral_count():
+    query = "SELECT COUNT(*) AS total FROM Artista;"
+    return run_query(query)
+
+def get_total_album_geral_count():
+    query = "SELECT COUNT(*) AS total FROM Album;"
+    return run_query(query)
+
+def get_total_podcasts_geral_count():
+    query = "SELECT COUNT(*) AS total FROM Podcast;"
+    return run_query(query)
+
 def get_top5_musicas_geral():
     # 5 musicas mais ouvidas no spotify
     query = """
@@ -137,18 +199,12 @@ def get_top5_musicas_geral():
         M.nome AS Nome_da_Musica,
         C.nome AS Nome_do_Album,
         SUM(EM.numero_reproducoes) AS Total_de_Reproducoes
-    FROM
-        EscutaMusica EM
-    JOIN
-        Musica M ON EM.id_da_musica = M.id_da_musica
-    JOIN
-        Album A ON M.id_album = A.id_album
-    JOIN
-        Conteudo C ON A.id_album = C.id
-    GROUP BY
-        M.id_da_musica, M.nome, C.nome
-    ORDER BY
-        Total_de_Reproducoes DESC
+    FROM EscutaMusica EM
+        JOIN Musica M ON EM.id_da_musica = M.id_da_musica
+        JOIN Album A ON M.id_album = A.id_album
+        JOIN Conteudo C ON A.id_album = C.id
+    GROUP BY M.id_da_musica, M.nome, C.nome
+    ORDER BY Total_de_Reproducoes DESC
     LIMIT 5;"""
 
     return run_query(query)
@@ -168,6 +224,19 @@ def get_top_10_albuns_com_mais_faixas():
 
     return run_query(query)
 
+def get_top5_albuns_salvos():
+    # Top 5 albuns mais seguidos
+    query = '''
+    SELECT Conteudo.nome, COUNT(SalvaAlbum.id_da_conta) AS total_salvos
+    FROM SalvaAlbum 
+        JOIN Album ON SalvaAlbum.id_album = Album.id_album
+        JOIN Conteudo ON Album.id_album = Conteudo.id
+        GROUP BY Conteudo.nome
+            ORDER BY total_salvos DESC
+            LIMIT 5;'''
+    return run_query(query)
+
+
 def get_top5_podcast_seguidos():
     # Top 5 podcasts mais seguidos
     query = '''
@@ -184,7 +253,8 @@ def get_top5_podcast_seguidos():
 def get_art_mais_mus_publi():
     # Artista com o maior número de músicas publicadas
     query = '''
-    SELECT MIN(Conta.nome) FROM Artista, Conta, Conteudo, Album, Musica
+    SELECT MIN(Conta.nome) AS nome_artista
+    FROM Artista, Conta, Conteudo, Album, Musica
     WHERE Artista.id_do_artista = Conta.id
         AND Conteudo.id_do_artista = Artista.id_do_artista
         AND Album.id_album = Conteudo.id
@@ -265,7 +335,7 @@ def get_genero_musica_ouvida(user_id):
     SUM(EscutaMusica.numero_reproducoes) AS reproducoes_totais
         FROM EscutaMusica 
         JOIN Musica ON EscutaMusica.id_da_musica = Musica.id_da_musica
-        WHERE EscutaMusica.id_da_conta = 5 --:id_usuario_logado
+        WHERE EscutaMusica.id_da_conta = %s
         GROUP BY Musica.genero
         ORDER BY reproducoes_totais DESC
         LIMIT 1;'''

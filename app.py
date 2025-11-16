@@ -98,23 +98,24 @@ tab1, tab2, tab3 = st.tabs(["📊 Visão Geral", "🎤 Análise Artistas", "👤
 with tab1:
     st.markdown("<div class='content-box'>", unsafe_allow_html=True)
     st.header("📊 Visão Geral")
-    st.subheader("Aqui ficarão os gráficos da Visão Geral")
 
     # Placeholder para gráficos
-    col1, col2, col3 = st.columns(3)
-    
+    col1, col2= st.columns(2)
+
     with col1:
-        st.subheader("TOP 5 Músicas Mais Reproduzidas: 🎧")
+        pq.plot_total_musicas()
+        pq.plot_total_artistas()
+        st.subheader("Top 5 Músicas Mais Reproduzidas: 🎧")
         pq.plot_top5_musicas_geral()
+        st.subheader("Top 5 álbuns mais salvos pelos usuários ⭐")
+        pq.plot_top_5_albuns_salvos()
 
     with col2:
-        st.subheader("TOP 10 Álbuns com Mais Faixas 💿")
+        pq.plot_total_album()
+        pq.plot_total_podcast()
+        st.subheader("Top 10 álbuns com mais Faixas 💿")
         pq.plot_top_10_albuns()
-
-    with col3:
-        st.subheader("TOP 5 Álbuns Mais Salvos pelos Usuários ⭐")
-        pq.plot_top_5_albuns_salvos()
-        st.subheader("TOP 5 Podcasts Mais Seguidos 📈")
+        st.subheader("Top 5 podcasts mais seguidos 📈")
         pq.plot_top_5_podcasts_seguidos()
 
     # Conteúdo placeholder
@@ -129,8 +130,14 @@ with tab1:
 
 with tab2:
     st.header("🎤 Análise dos Artistas")
+    st.subheader("Destaques da Categoria")
+    col1, col2= st.columns(2)
+    with col1:
+        pq.plot_artista_mais_seguido()
+    with col2:
+        pq.plot_artista_mais_mus_publi()
+    st.markdown("---")
     pq.plot_info_artista()
-
 
 # TAB 3: Análise do Usuário
 
@@ -145,38 +152,30 @@ with tab3:
 
     # Métricas do usuário
 
-    col1, col2, col3, col4 = st.columns(4)
+    col1, col2, col3, col4, col5 = st.columns(5)
 
     with col1:
-        pq.plot_total_musicas(user_id_logado)
+        pq.plot_total_musicas_user(user_id_logado)
 
     with col2:
         pq.plot_tempo_total_escutado(user_id_logado)
 
     with col3:
         pq.plot_genero_musica_preferido(user_id_logado)
-        pq.plot_artista_favorito(user_id_logado)
 
     with col4:
         pq.plot_musica_favorita(user_id_logado)
 
-    # Mais detalhes
+    with col5:
+        pq.plot_artista_favorito(user_id_logado)
 
     st.markdown("---")
 
     st.subheader("📈 Análise de estatísticas")
-
-    # Conteúdo placeholder
-
     with st.expander("Ver estatísticas detalhadas"):
         pq.plot_top5_musicas_usuario(user_id_logado)
 
-        # st.markdown("---")
-   
-
     st.markdown("</div>", unsafe_allow_html=True)
-
-
 
 # Rodapé
 
