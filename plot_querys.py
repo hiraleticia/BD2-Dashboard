@@ -61,13 +61,8 @@ def plot_top5_musicas_geral():
             labelColor='#FFFFFF',
             titleColor='#FFFFFF'
         )
-        # --- FIM DAS CONFIGURAÇÕES MANUAIS ---
 
-        # A chamada DEVE incluir theme=None para respeitar nossa configuração manual
         st.altair_chart(chart, use_container_width=True, theme=None)
-
-        with st.expander("Ver dados brutos"):
-            st.dataframe(df_top_musicas, use_container_width=True)
 
     else:
         st.info("Nenhum dado encontrado para as Top 5 músicas.")
@@ -84,7 +79,7 @@ def plot_info_artista():
     if not df_mais_seguidores.empty:
         artista_nome = df_mais_seguidores.iloc[0]['nome']
         seguidores = df_mais_seguidores.iloc[0]['total_seguidores']
-        st.metric(label="Artista com Mais Seguidores",
+        st.metric(label="Artista com mais seguidores",
                   value=artista_nome,
                   delta=f"{seguidores} seguidores")
     else:
@@ -315,9 +310,7 @@ def plot_tempo_total_escutado(user_id_logado):
         total_segundos = 0
 
     total_minutos = total_segundos // 60
-
     horas = total_minutos // 60
-
     minutos = total_minutos % 60
 
     st.metric("Horas ouvindo", f"{horas}h {minutos}m")
@@ -325,10 +318,58 @@ def plot_tempo_total_escutado(user_id_logado):
 def plot_artista_favorito(user_id_logado):
     df_art_fav = q.get_top1_art_ouvido(user_id_logado)
     artista_fav = df_art_fav.iloc[0]['nome'] if not df_art_fav.empty else "N/A"
-    
     st.metric("Artista favorito", artista_fav)
 
-def plot_genero_preferido(user_id_logado): ###### ALTERAR
-    df_gen_album = q.get_genero_album_ouvido(user_id_logado)
+def plot_genero_musica_preferido(user_id_logado): ###### ALTERAR
+    df_gen_album = q.get_genero_musica_ouvida(user_id_logado)
     genero_album_pref = df_gen_album.iloc[0]['genero'] if not df_gen_album.empty else "N/A"
     st.metric("Gênero de Música Preferido", genero_album_pref)
+
+def plot_musica_favorita(user_id_logado):
+    df_mus_fav = q.get_top1_musica_ouvida(user_id_logado)
+    musica_fav = df_mus_fav.iloc[0]['nome'] if not df_mus_fav.empty else "N/A"
+    # Rótulo em negrito
+    st.markdown("**Música favorita**")
+
+    # Valor (o nome da música) com fonte menor (ex: 20px)
+    st.markdown(f"""
+        <p style='font-size: 20px; color: #FFFFFF; margin-top: -10px;'>
+            {musica_fav}
+        </p>
+        """, unsafe_allow_html=True)
+
+
+def plot_top5_musicas_usuario(user_id_logado):
+    df_top5 = q.get_top5_musicas_ouvidas(user_id_logado)
+
+    if not df_top5.empty:
+        df_top5 = df_top5.reset_index()
+
+        fig_bar = px.bar(
+            df_top5,
+            x="numero_reproducoes",
+            y="nome",
+            orientation='h',  # Gráfico horizontal
+            title="Top 5 músicas mais ouvidas",
+            labels={'nome': 'Música', 'numero_reproducoes': 'Reproduções'},
+            text='numero_reproducoes',
+
+        )
+
+        fig_bar.update_layout(
+            paper_bgcolor='rgba(0,0,0,0)',
+            plot_bgcolor='rgba(0,0,0,0)',
+            title_font_color='#FFFFFF',
+            font_color='#FFFFFF',
+            yaxis={'categoryorder': 'total ascending'}  # Ordena do maior para o menor
+        )
+
+        # Estilizar as barras
+        fig_bar.update_traces(
+            textposition='outside',
+            marker_color='#1ED760'  # Verde Spotify
+        )
+
+        st.plotly_chart(fig_bar, use_container_width=True)
+    else:
+        st.info("Você ainda não possui um ranking de músicas.")

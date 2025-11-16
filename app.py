@@ -168,10 +168,11 @@ with tab3:
         pq.plot_tempo_total_escutado(user_id_logado)
 
     with col3:
+        pq.plot_genero_musica_preferido(user_id_logado)
         pq.plot_artista_favorito(user_id_logado)
 
     with col4:
-        pq.plot_genero_preferido(user_id_logado)
+        pq.plot_musica_favorita(user_id_logado)
 
     # Mais detalhes
 
@@ -182,11 +183,9 @@ with tab3:
     # Conteúdo placeholder
 
     with st.expander("Ver estatísticas detalhadas"):
+        pq.plot_top5_musicas_usuario(user_id_logado)
 
-        for i in range(5):
-
-            st.write(f"Estatística {i+1}")
-
+        # st.markdown("---")
    
 
     st.markdown("</div>", unsafe_allow_html=True)

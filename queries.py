@@ -166,20 +166,6 @@ def get_top_10_albuns_com_mais_faixas():
 
     return run_query(query)
 
-
-def get_top5_albuns_salvos():
-    # Top 5 albuns mais seguidos
-    query = '''
-    SELECT Conteudo.nome, COUNT(SalvaAlbum.id_da_conta) AS total_salvos
-    FROM SalvaAlbum 
-        JOIN Album ON SalvaAlbum.id_album = Album.id_album
-        JOIN Conteudo ON Album.id_album = Conteudo.id
-        GROUP BY Conteudo.nome
-            ORDER BY total_salvos DESC
-            LIMIT 5;'''
-    return run_query(query)
-
-
 def get_top5_podcast_seguidos():
     # Top 5 podcasts mais seguidos
     query = '''
@@ -229,17 +215,6 @@ def get_top1_musica_ouvida(user_id):
     return run_query(query, (user_id,))
 
 
-def get_top1_episodio_ouvido():
-    query = '''
-    SELECT Episodio.nome, EscutaEpisodio.numero_reproducoes
-    FROM EscutaEpisodio
-        JOIN Episodio ON EscutaEpisodio.id_episodio = Episodio.id_episodio
-        WHERE EscutaEpisodio.id_da_conta = %s
-        ORDER BY EscutaEpisodio.numero_reproducoes DESC
-        LIMIT 1;'''
-    return run_query(query)
-
-
 def get_top1_art_ouvido(user_id):
     # Artista mais ouvido pelo usuário
     query = '''
@@ -281,19 +256,17 @@ def get_top1_art_ouvido(user_id):
     return run_query(query, (user_id, user_id))
 
 
-def get_genero_album_ouvido(user_id):
+def get_genero_musica_ouvida(user_id):
     # Gênero de album mais ouvido pelo usuário
     query = '''
-    SELECT Conteudo.genero, 
+    SELECT Musica.genero, 
     SUM(EscutaMusica.numero_reproducoes) AS reproducoes_totais
         FROM EscutaMusica 
         JOIN Musica ON EscutaMusica.id_da_musica = Musica.id_da_musica
-        JOIN Album ON Musica.id_album = Album.id_album
-        JOIN Conteudo ON Album.id_album = Conteudo.ID
-            WHERE EscutaMusica.id_da_conta = %s
-            GROUP BY Conteudo.genero
-            ORDER BY reproducoes_totais DESC
-            LIMIT 1;'''
+        WHERE EscutaMusica.id_da_conta = 5 --:id_usuario_logado
+        GROUP BY Musica.genero
+        ORDER BY reproducoes_totais DESC
+        LIMIT 1;'''
     return run_query(query, (user_id,))
 
 
