@@ -84,12 +84,14 @@ def get_top5_musicas_geral():
 def get_top_10_albuns_com_mais_faixas():
     # Busca o ranking de top 10 álbuns com mais músicas
     query = """
-        SELECT a.nome, COUNT(m.id_da_musica) AS total_de_musicas
+        SELECT ct.nome,
+        COUNT(m.id_da_musica) AS total_de_musicas
         FROM Musica AS m
-            JOIN Album AS a ON m.id_album = a.id_album
-            GROUP BY a.nome
-                ORDER BY total_de_musicas DESC
-                LIMIT 10;"""
+        JOIN Album AS al ON m.id_album = al.id_album
+        JOIN Conteudo AS ct ON al.id_album = ct.id
+        GROUP BY ct.nome
+        ORDER BY total_de_musicas DESC
+        LIMIT 10;"""
 
     return run_query(query)
 

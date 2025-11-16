@@ -111,9 +111,6 @@ def plot_top_10_albuns():
         
         st.altair_chart(chart, use_container_width=True)
         
-        st.caption("Dados utilizados no gráfico:")
-        st.dataframe(df_top_albuns, use_container_width=True)
-        
     else:
         st.info("Nenhum álbum encontrado para o ranking Top 10.")
     
@@ -159,9 +156,6 @@ def plot_top_5_albuns_salvos():
         # 4. Exibir o gráfico no Streamlit
         st.altair_chart(chart, use_container_width=True)
         
-        st.caption("Dados brutos do ranking:")
-        st.dataframe(df_top_albuns_salvos, use_container_width=True)
-        
     else:
         st.info("Nenhum dado de álbum salvo encontrado.")
 
@@ -206,9 +200,6 @@ def plot_top_5_podcasts_seguidos():
         
         # 4. Exibir o gráfico no Streamlit
         st.altair_chart(chart, use_container_width=True)
-        
-        st.caption("Dados brutos do ranking de Podcasts:")
-        st.dataframe(df_top_podcasts, use_container_width=True)
         
     else:
         st.info("Nenhum dado de podcast seguido encontrado.")
