@@ -378,8 +378,8 @@ def plot_info_artista():
 
             st.subheader(f'Músicas escutadas do álbum "{album_escolhido}" ')
             df_musicas = q.get_song_plays_by_album(id_album)
-            if df_musicas.empty:
-                st.info("Este álbum não possui nenhum ouvinte.")
+            if df_musicas['reproducoes'].sum() == 0:
+                st.info("Este álbum ainda não tem nenhuma reprodução registrada.")
             else:
                 fig = px.pie(
                     df_musicas,
