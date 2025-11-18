@@ -60,7 +60,7 @@ def do_login():
     try:
         df_user = run_query(query, (username_input,))
     except Exception as e:
-        st.error(f"Erro ao verificar usuário: {e}")
+        st.error(f"Erro ao verificar usuário")
         return
 
     # 3. VERIFICA O RESULTADO
