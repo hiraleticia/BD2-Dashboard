@@ -1,8 +1,6 @@
 import streamlit as st
 import altair as alt
-import sqlalchemy
 import psycopg2
-import pandas as pd
 import plotly.express as px
 from dotenv import load_dotenv
 import os

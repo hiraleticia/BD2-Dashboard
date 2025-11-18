@@ -1,7 +1,6 @@
 import streamlit as st
 import altair as alt
 import pandas as pd
-import plotly.express as px
 from db import run_query
 
 # ------ TAB ARTISTA ------
